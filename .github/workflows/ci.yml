@@ -1,0 +1,61 @@
+name: CloudTask CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test-go:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [auth-service, task-service, team-service, notification-service]
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+
+    - name: Verify dependencies
+      if: hashFiles(format('services/{0}/go.mod', matrix.service)) != ''
+      run: |
+        cd services/${{ matrix.service }}
+        go mod tidy
+
+    - name: Build
+      if: hashFiles(format('services/{0}/go.mod', matrix.service)) != ''
+      run: |
+        cd services/${{ matrix.service }}
+        go build -v ./...
+
+    - name: Test
+      if: hashFiles(format('services/{0}/go.mod', matrix.service)) != ''
+      run: |
+        cd services/${{ matrix.service }}
+        go test -v ./...
+
+  build-frontend:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+
+    - name: Install dependencies
+      if: hashFiles('frontend/package.json') != ''
+      run: |
+        cd frontend
+        npm ci || npm install
+
+    - name: Build
+      if: hashFiles('frontend/package.json') != ''
+      run: |
+        cd frontend
+        npm run build

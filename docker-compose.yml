@@ -1,0 +1,129 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: cloudtask-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-cloudtask}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - cloudtask-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: cloudtask-redis
+    restart: always
+    command: redis-server --requirepass ${REDIS_PASSWORD:-redispass}
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - cloudtask-network
+
+  api-gateway:
+    image: nginx:alpine
+    container_name: cloudtask-api-gateway
+    restart: always
+    volumes:
+      - ./api-gateway/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "80:80"
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - cloudtask-network
+
+  auth-service:
+    build:
+      context: ./services/auth-service
+    container_name: cloudtask-auth-service
+    restart: always
+    environment:
+      - PORT=8081
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=${POSTGRES_USER:-postgres}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - DB_NAME=${POSTGRES_DB:-cloudtask}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-redispass}
+      - JWT_SECRET=${JWT_SECRET:-supersecret}
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - cloudtask-network
+
+  task-service:
+    build:
+      context: ./services/task-service
+    container_name: cloudtask-task-service
+    restart: always
+    environment:
+      - PORT=8082
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=${POSTGRES_USER:-postgres}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - DB_NAME=${POSTGRES_DB:-cloudtask}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-redispass}
+      - JWT_SECRET=${JWT_SECRET:-supersecret}
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - cloudtask-network
+
+  team-service:
+    build:
+      context: ./services/team-service
+    container_name: cloudtask-team-service
+    restart: always
+    environment:
+      - PORT=8083
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=${POSTGRES_USER:-postgres}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - DB_NAME=${POSTGRES_DB:-cloudtask}
+      - JWT_SECRET=${JWT_SECRET:-supersecret}
+    depends_on:
+      - postgres
+    networks:
+      - cloudtask-network
+
+  notification-service:
+    build:
+      context: ./services/notification-service
+    container_name: cloudtask-notification-service
+    restart: always
+    environment:
+      - PORT=8084
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-redispass}
+      - JWT_SECRET=${JWT_SECRET:-supersecret}
+    depends_on:
+      - redis
+    networks:
+      - cloudtask-network
+
+networks:
+  cloudtask-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
