@@ -85,11 +85,23 @@ docker-compose.yml          # Local container orchestration
 
 ---
 
-## Cloud Deployment Guide (AWS or GCP)
+## 🚀 One-Click Cloud Deployment (Render.com)
 
-1. **Database Strategy**: Provision an AWS RDS (PostgreSQL) or GCP Cloud SQL instance.
-2. **Caching Strategy**: Provision an AWS ElastiCache (Redis) or Memorystore instance.
-3. **Container Hosting**: Deploy the microservices to AWS ECS (Fargate) or GCP Cloud Run using docker images built by GitHub Actions.
-4. **API Gateway**: Use an AWS Application Load Balancer (ALB) or Google Cloud Load Balancer with Nginx Ingress or API Gateway to route traffic.
-5. **Frontend**: Deploy the static built `frontend/dist` folder to AWS S3 + CloudFront, or Vercel / Netlify.
-6. **Secrets & Config**: Manage environment variables (`JWT_SECRET`, `DB_PASSWORD`) via AWS Secrets Manager or Google Secret Manager.
+You can deploy the entire CloudTask cluster (all microservices, API Gateway, Frontend, Postgres, and Redis) with a single click using Render's Blueprint feature.
+
+[![Deploy to Render](https://render.com/images/deploy-to-render.svg)](https://render.com/blueprint/new?repo=https://github.com/YOUR_GITHUB_USERNAME/CloudTasks)
+
+### Setup Steps:
+1.  **Fork this repository** to your GitHub account.
+2.  Click the **Deploy to Render** button above (replace `YOUR_GITHUB_USERNAME` in the link).
+3.  Render will automatically detect the `render.yaml` file and prompt you to:
+    *   Set a **Blueprint Name**.
+    *   The `JWT_SECRET` will be automatically generated for you.
+4.  Once deployed, Render will provide a URL for your `api-gateway` and `cloudtask-frontend`.
+
+### Environment Variables
+The following variables are automatically handled by the Blueprint but can be customized in the Render dashboard:
+- `DB_URL` / `DB_HOST`: Managed Postgres connection.
+- `REDIS_URL` / `REDIS_HOST`: Managed Redis connection.
+- `JWT_SECRET`: Secure key for token signing.
+- `GATEWAY_URL`: Used by the Frontend to find the API Gateway.

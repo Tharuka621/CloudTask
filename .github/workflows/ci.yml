@@ -59,3 +59,45 @@ jobs:
       run: |
         cd frontend
         npm run build
+
+  release:
+    needs: [build-and-test-go, build-frontend]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        include:
+          - service: auth-service
+            context: services/auth-service
+          - service: task-service
+            context: services/task-service
+          - service: team-service
+            context: services/team-service
+          - service: notification-service
+            context: services/notification-service
+          - service: api-gateway
+            context: api-gateway
+          - service: frontend
+            context: frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v4
+        with:
+          context: ${{ matrix.context }}
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/${{ matrix.service }}:latest
+            ghcr.io/${{ github.repository }}/${{ matrix.service }}:${{ github.sha }}

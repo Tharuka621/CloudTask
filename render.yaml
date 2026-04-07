@@ -1,0 +1,182 @@
+services:
+  # API Gateway (Nginx)
+  - type: web
+    name: api-gateway
+    env: docker
+    dockerContext: api-gateway
+    dockerfilePath: api-gateway/Dockerfile
+    plan: free
+    healthCheckPath: /
+    envVars:
+      - key: PORT
+        value: 80
+
+  # Auth Service
+  - type: web
+    name: auth-service
+    env: docker
+    dockerContext: services/auth-service
+    dockerfilePath: services/auth-service/Dockerfile
+    plan: free
+    envVars:
+      - key: PORT
+        value: 8081
+      - key: DB_HOST
+        fromDatabase:
+          name: cloudtask-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: cloudtask-db
+          property: port
+      - key: DB_USER
+        fromDatabase:
+          name: cloudtask-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: cloudtask-db
+          property: password
+      - key: DB_NAME
+        fromDatabase:
+          name: cloudtask-db
+          property: database
+      - key: REDIS_HOST
+        fromRedis:
+          name: cloudtask-redis
+          property: host
+      - key: REDIS_PORT
+        fromRedis:
+          name: cloudtask-redis
+          property: port
+      - key: REDIS_PASSWORD
+        fromRedis:
+          name: cloudtask-redis
+          property: password
+      - key: JWT_SECRET
+        generateValue: true
+
+  # Task Service
+  - type: web
+    name: task-service
+    env: docker
+    dockerContext: services/task-service
+    dockerfilePath: services/task-service/Dockerfile
+    plan: free
+    envVars:
+      - key: PORT
+        value: 8082
+      - key: DB_HOST
+        fromDatabase:
+          name: cloudtask-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: cloudtask-db
+          property: port
+      - key: DB_USER
+        fromDatabase:
+          name: cloudtask-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: cloudtask-db
+          property: password
+      - key: DB_NAME
+        fromDatabase:
+          name: cloudtask-db
+          property: database
+      - key: JWT_SECRET
+        fromService:
+          name: auth-service
+          type: web
+          envVarKey: JWT_SECRET
+
+  # Team Service
+  - type: web
+    name: team-service
+    env: docker
+    dockerContext: services/team-service
+    dockerfilePath: services/team-service/Dockerfile
+    plan: free
+    envVars:
+      - key: PORT
+        value: 8083
+      - key: DB_HOST
+        fromDatabase:
+          name: cloudtask-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: cloudtask-db
+          property: port
+      - key: DB_USER
+        fromDatabase:
+          name: cloudtask-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: cloudtask-db
+          property: password
+      - key: DB_NAME
+        fromDatabase:
+          name: cloudtask-db
+          property: database
+      - key: JWT_SECRET
+        fromService:
+          name: auth-service
+          type: web
+          envVarKey: JWT_SECRET
+
+  # Notification Service
+  - type: web
+    name: notification-service
+    env: docker
+    dockerContext: services/notification-service
+    dockerfilePath: services/notification-service/Dockerfile
+    plan: free
+    envVars:
+      - key: PORT
+        value: 8084
+      - key: REDIS_HOST
+        fromRedis:
+          name: cloudtask-redis
+          property: host
+      - key: REDIS_PORT
+        fromRedis:
+          name: cloudtask-redis
+          property: port
+      - key: REDIS_PASSWORD
+        fromRedis:
+          name: cloudtask-redis
+          property: password
+      - key: JWT_SECRET
+        fromService:
+          name: auth-service
+          type: web
+          envVarKey: JWT_SECRET
+
+  # Frontend
+  - type: web
+    name: cloudtask-frontend
+    env: docker
+    dockerContext: frontend
+    dockerfilePath: frontend/Dockerfile
+    plan: free
+    envVars:
+      - key: GATEWAY_URL
+        fromService:
+          name: api-gateway
+          type: web
+          property: host
+
+databases:
+  - name: cloudtask-db
+    plan: free
+    databaseName: cloudtask
+    user: cloudtask_user
+
+redises:
+  - name: cloudtask-redis
+    plan: free
+    ipAllowList: [] # Only allow internal connections
